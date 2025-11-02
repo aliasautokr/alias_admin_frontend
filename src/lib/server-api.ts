@@ -3,7 +3,7 @@ import axios from 'axios'
 // Server-side only API client for auth flows (no localStorage/token utils)
 // Used by NextAuth callbacks to call the backend without importing client modules
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 'https://api.aliasauto.kr/api/v1'
 
 const serverAxios = axios.create({
   baseURL,
