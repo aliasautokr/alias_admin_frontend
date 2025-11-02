@@ -1,36 +1,195 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aliasauto Admin Dashboard
 
-## Getting Started
+A modern, responsive admin dashboard built with Next.js 15, TypeScript, and TailwindCSS for the Aliasauto platform.
 
-First, run the development server:
+## 🚀 Features
 
+- **Next.js 15** with App Router
+- **TypeScript** for type safety
+- **TailwindCSS** for styling
+- **ShadCN UI** components
+- **NextAuth.js** for authentication
+- **React Query** for state management
+- **Axios** for API calls
+- **Lucide React** for icons
+- **Responsive design** with mobile support
+
+## 🛠️ Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: TailwindCSS + ShadCN UI
+- **State Management**: React Query (TanStack)
+- **HTTP Client**: Axios
+- **Authentication**: NextAuth.js (JWT-based)
+- **Icons**: Lucide React
+- **Backend API**: https://api.aliasauto.kr
+
+## 📦 Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd aliasauto_admin
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Update the environment variables in `.env.local`:
+```env
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-key-here
+NEXT_PUBLIC_API_URL=https://api.aliasauto.kr
+```
 
-## Learn More
+5. Run the development server:
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🏗️ Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/
+│   ├── (auth)/
+│   │   ├── login/
+│   │   └── layout.tsx
+│   ├── (dashboard)/
+│   │   ├── dashboard/
+│   │   └── layout.tsx
+│   ├── api/
+│   │   └── auth/
+│   └── layout.tsx
+├── components/
+│   ├── ui/                 # ShadCN UI components
+│   ├── layout/             # Layout components
+│   └── providers/          # Context providers
+├── lib/
+│   ├── auth.ts            # NextAuth configuration
+│   ├── axios.ts           # Axios instance
+│   └── utils.ts           # Utility functions
+└── types/
+    └── index.ts           # TypeScript type definitions
+```
 
-## Deploy on Vercel
+## 🎨 Theme System
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The app features a beautiful dark/light theme system with:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Dark Theme**: Midnight color scheme (#0F0F23 background)
+- **Light Theme**: Clean white background
+- **Custom Button Gradients**: Amber to Orange gradient buttons
+- **Theme Toggle**: Easy switching between themes
+
+## 🎨 UI Components
+
+The project uses ShadCN UI components with a custom admin theme. Key components include:
+
+- **Button** - Various button styles and sizes
+- **Card** - Content containers with headers and footers
+- **Input** - Form input fields
+- **Avatar** - User profile images
+- **Dropdown Menu** - Context menus and user actions
+- **Separator** - Visual dividers
+- **Skeleton** - Loading placeholders
+
+## 📱 Responsive Design
+
+The dashboard is fully responsive with:
+
+- **Mobile-first** approach
+- **Collapsible sidebar** on mobile devices
+- **Touch-friendly** interface
+- **Adaptive layouts** for different screen sizes
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Set environment variables in Vercel dashboard
+4. Deploy automatically on every push
+
+### Environment Variables for Production
+
+```env
+NEXTAUTH_URL=https://admin.aliasauto.kr
+NEXTAUTH_SECRET=your-production-secret
+NEXT_PUBLIC_API_URL=https://api.aliasauto.kr
+```
+
+## 🧪 Development
+
+### Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix ESLint errors
+
+### Code Style
+
+The project uses:
+- **ESLint** for code linting
+- **Prettier** for code formatting
+- **TypeScript** for type checking
+
+## 🔧 Configuration
+
+### TailwindCSS
+
+Custom theme colors are defined in `tailwind.config.ts` with admin-specific color schemes.
+
+### Theme Provider
+
+Theme switching is configured with:
+- Dark/light mode support
+- System preference detection
+- Custom midnight dark theme
+- Gradient button styles
+
+### React Query
+
+Query client is configured in `components/providers/query-provider.tsx` with:
+- Default stale time
+- Retry logic
+- Error handling
+- DevTools integration
+
+## 📝 API Integration
+
+The app is configured to work with the Aliasauto API at `https://api.aliasauto.kr`. The Axios instance includes:
+
+- Automatic JWT token injection
+- Request/response interceptors
+- Error handling
+- Timeout configuration
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+## 📄 License
+
+This project is proprietary software for Aliasauto platform.
+
+## 🆘 Support
+
+For support and questions, please contact the development team.
