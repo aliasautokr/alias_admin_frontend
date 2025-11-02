@@ -171,7 +171,6 @@ export default function EditInspectionPage({ params }: EditInspectionPageProps) 
               newFiles={newFiles}
               onExistingImagesChange={setExistingImages}
               onNewFilesChange={setNewFiles}
-              onSave={() => {}} // Not used in this context
             />
           </div>
 
