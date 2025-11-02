@@ -108,7 +108,6 @@ export default function NewInspectionPage() {
             <ImageDropzone
               files={images}
               onFilesChange={setImages}
-              onSave={() => {}} // Not used in this context
             />
           </div>
 

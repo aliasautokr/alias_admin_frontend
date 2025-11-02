@@ -114,9 +114,8 @@ api.interceptors.response.use(
             expiresIn: expiresIn || 900
           })
           
-          // Trigger session update in NextAuth
-          // This will update the session with new tokens
-          await getSession({ update: true })
+          // Session will be updated automatically via NextAuth on next request
+          // The tokens are already stored in localStorage
         }
 
         // Process queued requests
