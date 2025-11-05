@@ -123,23 +123,6 @@ export default function NewInvoicePage() {
     setVinSearch("")
   }
 
-  const handleFillDummyData = () => {
-    // Fill with dummy data for testing
-    if (companies.length > 0) {
-      setSelectedCompanyId(companies[0].id)
-    }
-    if (portInfos.length > 0) {
-      setSelectedPortInfoId(portInfos[0].id)
-    }
-    setSelectedCountry("Russia")
-    setBuyer({
-      country: "Russia",
-      consignee_name: "Ivan Petrov",
-      consignee_address: "12 Tverskaya Ulitsa, Moscow, Russia, 125009",
-      consignee_iin: "264592930755",
-      consignee_tel: "+75635579147",
-    })
-  }
 
   const handleGenerateConsignee = async () => {
     if (!selectedCountry) {
@@ -213,13 +196,6 @@ export default function NewInvoicePage() {
           <CardDescription>Create a new invoice</CardDescription>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="secondary" 
-            onClick={handleFillDummyData}
-            type="button"
-          >
-            Fill Dummy Data
-          </Button>
           <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
           <Button 
             className="bg-gradient-to-r from-amber-500 to-orange-600 text-white" 
