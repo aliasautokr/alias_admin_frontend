@@ -4,7 +4,7 @@ import "./globals.css";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { SessionProvider } from "next-auth/react";
-import { TokenSyncProvider } from "@/components/providers/token-sync";
+import { TokenStoreProvider } from "@/components/providers/token-store";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +36,7 @@ export default function RootLayout({
           refetchOnWindowFocus={false} // Don't refetch on window focus
           refetchWhenOffline={false} // Don't refetch when offline
         >
-          <TokenSyncProvider>
+          <TokenStoreProvider>
             <ThemeProvider
               attribute="class"
               defaultTheme="dark"
@@ -48,7 +48,7 @@ export default function RootLayout({
                 {children}
               </QueryProvider>
             </ThemeProvider>
-          </TokenSyncProvider>
+          </TokenStoreProvider>
         </SessionProvider>
       </body>
     </html>

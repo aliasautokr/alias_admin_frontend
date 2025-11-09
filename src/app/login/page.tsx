@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useState } from "react"
 import { Loader2, AlertCircle } from "lucide-react"
-import { apiClient } from "@/lib/api-client"
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -16,15 +15,6 @@ export default function LoginPage() {
     setError(null)
     
     try {
-      // Check if backend is available
-      try {
-        await apiClient.checkSetupStatus()
-        console.log("✅ Backend is available")
-      } catch (backendError) {
-        console.warn("⚠️ Backend not available, proceeding with frontend-only auth")
-        setError("Backend is not available. Some features may not work.")
-      }
-      
       await signIn("google", { callbackUrl: "/dashboard" })
     } catch (error) {
       console.error("Sign in error:", error)

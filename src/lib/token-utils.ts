@@ -1,74 +1,54 @@
 "use client"
 
-export interface TokenData {
-  accessToken: string
-  refreshToken: string
-  expiresIn: number
+const ACCESS_TOKEN_KEY = "accessToken"
+const REFRESH_TOKEN_KEY = "refreshToken"
+
+let memoryAccessToken: string | null = null
+let memoryRefreshToken: string | null = null
+
+function writeToStorage(key: string, value: string) {
+  if (typeof window === "undefined") return
+  window.localStorage.setItem(key, value)
 }
 
-export class TokenManager {
-  private static readonly ACCESS_TOKEN_KEY = 'accessToken'
-  private static readonly REFRESH_TOKEN_KEY = 'refreshToken'
-  private static readonly TOKEN_EXPIRY_KEY = 'tokenExpiry'
-
-  static setTokens(tokenData: TokenData): void {
-    if (typeof window === 'undefined') return
-    
-    localStorage.setItem(this.ACCESS_TOKEN_KEY, tokenData.accessToken)
-    localStorage.setItem(this.REFRESH_TOKEN_KEY, tokenData.refreshToken)
-    
-    // Calculate expiry time (expiresIn is in seconds)
-    const expiryTime = Date.now() + (tokenData.expiresIn * 1000)
-    localStorage.setItem(this.TOKEN_EXPIRY_KEY, expiryTime.toString())
-  }
-
-  static getAccessToken(): string | null {
-    if (typeof window === 'undefined') return null
-    return localStorage.getItem(this.ACCESS_TOKEN_KEY)
-  }
-
-  static getRefreshToken(): string | null {
-    if (typeof window === 'undefined') return null
-    return localStorage.getItem(this.REFRESH_TOKEN_KEY)
-  }
-
-  static isTokenExpired(): boolean {
-    if (typeof window === 'undefined') return true
-    
-    const expiryTime = localStorage.getItem(this.TOKEN_EXPIRY_KEY)
-    if (!expiryTime) return true
-    
-    return Date.now() >= parseInt(expiryTime)
-  }
-
-  static clearTokens(): void {
-    if (typeof window === 'undefined') return
-    
-    localStorage.removeItem(this.ACCESS_TOKEN_KEY)
-    localStorage.removeItem(this.REFRESH_TOKEN_KEY)
-    localStorage.removeItem(this.TOKEN_EXPIRY_KEY)
-  }
-
-  static hasValidTokens(): boolean {
-    const accessToken = this.getAccessToken()
-    const refreshToken = this.getRefreshToken()
-    
-    return !!(accessToken && refreshToken && !this.isTokenExpired())
-  }
-
-  static getTokenInfo(): {
-    hasAccessToken: boolean
-    hasRefreshToken: boolean
-    isExpired: boolean
-    isValid: boolean
-  } {
-    return {
-      hasAccessToken: !!this.getAccessToken(),
-      hasRefreshToken: !!this.getRefreshToken(),
-      isExpired: this.isTokenExpired(),
-      isValid: this.hasValidTokens()
-    }
-  }
+function readFromStorage(key: string): string | null {
+  if (typeof window === "undefined") return null
+  return window.localStorage.getItem(key)
 }
 
-export const tokenManager = TokenManager
+function removeFromStorage(key: string) {
+  if (typeof window === "undefined") return
+  window.localStorage.removeItem(key)
+}
+
+export function setTokens(tokens: { accessToken: string; refreshToken: string }) {
+  memoryAccessToken = tokens.accessToken
+  memoryRefreshToken = tokens.refreshToken
+
+  writeToStorage(ACCESS_TOKEN_KEY, tokens.accessToken)
+  writeToStorage(REFRESH_TOKEN_KEY, tokens.refreshToken)
+}
+
+export function getAccessToken(): string | null {
+  if (memoryAccessToken) return memoryAccessToken
+
+  const stored = readFromStorage(ACCESS_TOKEN_KEY)
+  memoryAccessToken = stored
+  return stored
+}
+
+export function getRefreshToken(): string | null {
+  if (memoryRefreshToken) return memoryRefreshToken
+
+  const stored = readFromStorage(REFRESH_TOKEN_KEY)
+  memoryRefreshToken = stored
+  return stored
+}
+
+export function clearTokens() {
+  memoryAccessToken = null
+  memoryRefreshToken = null
+
+  removeFromStorage(ACCESS_TOKEN_KEY)
+  removeFromStorage(REFRESH_TOKEN_KEY)
+}

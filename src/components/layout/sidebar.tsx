@@ -16,6 +16,7 @@ import {
   Settings,
   LogOut,
   FileText,
+  FileSpreadsheet,
   Car,
   Building2,
   Anchor,
@@ -41,6 +42,11 @@ const navigation = [
     name: "Invoices",
     href: "/invoices",
     icon: FileText,
+  },
+  {
+    name: "Invoice Templates",
+    href: "/invoice-templates",
+    icon: FileSpreadsheet,
   },
   {
     name: "Inspections",
@@ -120,6 +126,11 @@ export function Sidebar({ className }: SidebarProps) {
     "/invoices": () => queryClient.prefetchQuery({
       queryKey: ["invoices"],
       queryFn: () => apiClient.listInvoices(),
+      staleTime: 5 * 60 * 1000,
+    }),
+    "/invoice-templates": () => queryClient.prefetchQuery({
+      queryKey: ["invoice-templates"],
+      queryFn: () => apiClient.listInvoiceTemplates(),
       staleTime: 5 * 60 * 1000,
     }),
   }

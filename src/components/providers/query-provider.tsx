@@ -1,9 +1,7 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { useSession } from "next-auth/react"
-import { TokenManager } from "@/lib/token-utils"
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -30,9 +28,6 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
         },
       })
   )
-
-  // Token syncing is handled by TokenSyncProvider
-  // No need to duplicate here
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -1,5 +1,10 @@
-import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
-import { TokenManager } from './token-utils'
+import axios, {
+  AxiosError,
+  AxiosInstance,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios'
+import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './token-utils'
 
 class ApiClient {
   private client: AxiosInstance
@@ -18,111 +23,94 @@ class ApiClient {
   }
 
   private setupInterceptors() {
-    // Request interceptor to attach JWT token
     this.client.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
-        const token = this.getAccessToken()
+        const token = getAccessToken()
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }
         return config
       },
-      (error) => {
-        return Promise.reject(error)
-      }
+      (error) => Promise.reject(error)
     )
 
-    // Response interceptor to handle token refresh
     this.client.interceptors.response.use(
-      (response: AxiosResponse) => {
-        return response
-      },
-      async (error) => {
-        const originalRequest = error.config
+      (response: AxiosResponse) => response,
+      async (error: AxiosError) => {
+        const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          console.log('🔄 Token expired, attempting refresh...')
-          originalRequest._retry = true
-
-          try {
-            const newToken = await this.refreshToken()
-            console.log('✅ Token refreshed successfully')
-            originalRequest.headers.Authorization = `Bearer ${newToken}`
-            return this.client(originalRequest)
-          } catch (refreshError) {
-            console.error('❌ Token refresh failed:', refreshError)
-            this.clearTokens()
-            window.location.href = '/login'
-            return Promise.reject(refreshError)
-          }
+        if (!originalRequest || error.response?.status !== 401 || originalRequest._retry) {
+          return Promise.reject(error)
         }
 
-        return Promise.reject(error)
+        originalRequest._retry = true
+
+        try {
+          const newAccessToken = await this.refreshAccessToken()
+          originalRequest.headers = originalRequest.headers ?? {}
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
+          return this.client(originalRequest)
+        } catch (refreshError) {
+          clearTokens()
+          return Promise.reject(refreshError)
+        }
       }
     )
-  }
-
-  private getAccessToken(): string | null {
-    return TokenManager.getAccessToken()
-  }
-
-  private getRefreshToken(): string | null {
-    return TokenManager.getRefreshToken()
-  }
-
-  private setTokens(accessToken: string, refreshToken: string, expiresIn: number = 900) {
-    TokenManager.setTokens({ accessToken, refreshToken, expiresIn })
-  }
-
-  private clearTokens() {
-    TokenManager.clearTokens()
-  }
-
-  private async refreshToken(): Promise<string> {
-    if (this.refreshPromise) {
-      return this.refreshPromise
-    }
-
-    const refreshToken = this.getRefreshToken()
-    if (!refreshToken) {
-      throw new Error('No refresh token available')
-    }
-
-    this.refreshPromise = this.performTokenRefresh(refreshToken)
-
-    try {
-      const newAccessToken = await this.refreshPromise
-      return newAccessToken
-    } finally {
-      this.refreshPromise = null
-    }
-  }
-
-  private async performTokenRefresh(refreshToken: string): Promise<string> {
-    try {
-      console.log('🔄 Calling refresh endpoint...')
-      const response = await axios.post(
-        `${this.client.defaults.baseURL}/auth/refresh`,
-        { refreshToken }
-      )
-
-      const { accessToken, refreshToken: newRefreshToken, expiresIn } = response.data.data
-      console.log('✅ Refresh response received:', { expiresIn })
-      this.setTokens(accessToken, newRefreshToken, expiresIn)
-      return accessToken
-    } catch (error) {
-      console.error('❌ Refresh request failed:', error)
-      this.clearTokens()
-      throw error
-    }
   }
 
   // Public methods for API calls
   async googleLogin(idToken: string) {
     const response = await this.client.post('/auth/google', { idToken })
-    const { accessToken, refreshToken, user, expiresIn } = response.data.data
-    this.setTokens(accessToken, refreshToken, expiresIn)
-    return { user, accessToken, refreshToken, expiresIn }
+    const { accessToken, refreshToken, user } = response.data.data
+    setTokens({ accessToken, refreshToken })
+    return { user, accessToken, refreshToken }
+  }
+
+  async refreshTokens() {
+    const refreshToken = getRefreshToken()
+    if (!refreshToken) {
+      throw new Error('No refresh token available')
+    }
+
+    const response = await axios.post(
+      `${this.client.defaults.baseURL}/auth/refresh`,
+      { refreshToken }
+    )
+
+    const { accessToken, refreshToken: newRefreshToken } = response.data.data
+    setTokens({ accessToken, refreshToken: newRefreshToken })
+    return { accessToken, refreshToken: newRefreshToken }
+  }
+
+  private async refreshAccessToken(): Promise<string> {
+    if (this.refreshPromise) {
+      return this.refreshPromise
+    }
+
+    const refreshToken = getRefreshToken()
+    if (!refreshToken) {
+      throw new Error('No refresh token available')
+    }
+
+    this.refreshPromise = this.performRefresh(refreshToken)
+
+    try {
+      const newToken = await this.refreshPromise
+      return newToken
+    } finally {
+      this.refreshPromise = null
+    }
+  }
+
+  private async performRefresh(refreshToken: string): Promise<string> {
+    const response = await axios.post(
+      `${this.client.defaults.baseURL}/auth/refresh`,
+      { refreshToken }
+    )
+
+    const { accessToken, refreshToken: newRefreshToken } = response.data.data
+    setTokens({ accessToken, refreshToken: newRefreshToken })
+    return accessToken
   }
 
   async getCurrentUser() {
@@ -147,18 +135,16 @@ class ApiClient {
   }
 
   async logout() {
-    try {
-      await this.client.post('/auth/logout')
-    } catch (error) {
-      console.error('Logout error:', error)
-    } finally {
-      this.clearTokens()
+    const refreshToken = getRefreshToken()
+    if (refreshToken) {
+      try {
+        await this.client.post('/auth/logout', { refreshToken })
+      } catch (error) {
+        console.error('Logout error:', error)
+      }
     }
-  }
 
-  async checkSetupStatus() {
-    const response = await this.client.get('/auth/setup-status')
-    return response.data.data
+    clearTokens()
   }
 
   // Collections API methods
@@ -352,24 +338,49 @@ class ApiClient {
     return response.data.data
   }
 
+  // Invoice templates
+  async getInvoiceTemplateUploadUrl(fileName: string, fileType: string) {
+    const response = await this.client.post('/invoice-templates/upload-url', { fileName, fileType })
+    return response.data.data
+  }
+
+  async createInvoiceTemplate(data: { fileName: string; fileUrl: string; s3Key: string }) {
+    const response = await this.client.post('/invoice-templates', data)
+    return response.data.data
+  }
+
+  async listInvoiceTemplates() {
+    const response = await this.client.get('/invoice-templates')
+    return response.data.data
+  }
+
+  async deleteInvoiceTemplate(id: string) {
+    const response = await this.client.delete(`/invoice-templates/${id}`)
+    return response.data.data
+  }
+
   async getInvoice(id: string) {
     const response = await this.client.get(`/invoices/${id}`)
     return response.data.data
   }
 
-    async createInvoice(data: {
-      companyId: string
-      portInfoId: string
+  async createInvoice(data: {
+    companyId: string
+    portInfoId: string
+    country: string
+    destination: string
+    destinationCountry: string
+    invoiceTemplateUrl: string
+    carRecordId?: string
+    mode: "fake" | "original"
+    buyer: {
       country: string
-      carRecordId?: string
-      buyer: {
-        country: string
-        consignee_name: string
-        consignee_address: string
-        consignee_iin: string
-        consignee_tel: string
-      }
-    }) {
+      consignee_name: string
+      consignee_address: string
+      consignee_iin: string
+      consignee_tel: string
+    }
+  }) {
     const response = await this.client.post('/invoices', data)
     return response.data.data
   }

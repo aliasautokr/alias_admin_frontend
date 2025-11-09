@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -27,14 +27,25 @@ interface CarRecord {
   price: string
 }
 
+const COUNTRY_NAME_MAP: Record<string, string> = {
+  Russia: "Russian Federation",
+  Uzbekistan: "Republic of Uzbekistan",
+  Kazakhstan: "Republic of Kazakhstan",
+  Kyrgyzstan: "Kyrgyz Republic",
+}
+
+type InvoiceMode = "fake" | "original"
+
 export default function NewInvoicePage() {
   const router = useRouter()
   const qc = useQueryClient()
+  const [mode, setMode] = useState<InvoiceMode>("fake")
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("")
   const [selectedPortInfoId, setSelectedPortInfoId] = useState<string>("")
   const [selectedCarRecordId, setSelectedCarRecordId] = useState<string>("")
   const [selectedCarRecord, setSelectedCarRecord] = useState<CarRecord | null>(null)
   const [selectedCountry, setSelectedCountry] = useState<string>("")
+  const [destinationInput, setDestinationInput] = useState<string>("")
   const [buyer, setBuyer] = useState({
     country: "",
     consignee_name: "",
@@ -42,6 +53,7 @@ export default function NewInvoicePage() {
     consignee_iin: "",
     consignee_tel: "",
   })
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("")
   const [vinSearch, setVinSearch] = useState("")
   const [searchingVin, setSearchingVin] = useState(false)
   const [vinSearchResults, setVinSearchResults] = useState<CarRecord[]>([])
@@ -65,6 +77,14 @@ export default function NewInvoicePage() {
   })
   const portInfos = Array.isArray(portInfosData) ? portInfosData : []
 
+  // Fetch invoice templates
+  const { data: templatesData, isLoading: loadingTemplates } = useQuery({
+    queryKey: ["invoice-templates"],
+    queryFn: () => apiClient.listInvoiceTemplates(),
+    select: (data) => data || [],
+  })
+  const invoiceTemplates = Array.isArray(templatesData) ? templatesData : []
+
   // Fetch latest car record on mount
   const { data: latestCarRecord, isLoading: loadingLatestCar } = useQuery({
     queryKey: ["latest-car-record"],
@@ -79,6 +99,74 @@ export default function NewInvoicePage() {
       setSelectedCarRecord(latestCarRecord)
     }
   }, [latestCarRecord, selectedCarRecordId])
+
+  useEffect(() => {
+    if (invoiceTemplates.length > 0 && !selectedTemplateId) {
+      setSelectedTemplateId(invoiceTemplates[0].id)
+    }
+  }, [invoiceTemplates, selectedTemplateId])
+
+  useEffect(() => {
+    if (!selectedCompanyId && companies.length > 0) {
+      setSelectedCompanyId(companies[0].id)
+    }
+  }, [companies, selectedCompanyId])
+
+  useEffect(() => {
+    if (!selectedPortInfoId && portInfos.length > 0) {
+      setSelectedPortInfoId(portInfos[0].id)
+    }
+  }, [portInfos, selectedPortInfoId])
+
+  const selectedTemplate = useMemo(
+    () => invoiceTemplates.find((template: any) => template.id === selectedTemplateId),
+    [invoiceTemplates, selectedTemplateId]
+  )
+
+  const isFakeMode = mode === "fake"
+
+  useEffect(() => {
+    if (isFakeMode) {
+      const official = COUNTRY_NAME_MAP[selectedCountry] || selectedCountry || ""
+      setDestinationInput(official)
+    }
+  }, [isFakeMode, selectedCountry])
+
+  useEffect(() => {
+    if (isFakeMode) {
+      setBuyer((prev) => ({
+        ...prev,
+        country: selectedCountry,
+      }))
+    }
+  }, [isFakeMode, selectedCountry])
+
+  const computedDestination = isFakeMode
+    ? COUNTRY_NAME_MAP[selectedCountry] || selectedCountry
+    : selectedCountry
+  const computedDestinationCountry = isFakeMode
+    ? COUNTRY_NAME_MAP[selectedCountry] || selectedCountry
+    : destinationInput
+  const selectedTemplateUrl = selectedTemplate?.fileUrl || ""
+  const hasBuyerInfo =
+    buyer.consignee_name &&
+    buyer.consignee_address &&
+    buyer.consignee_iin &&
+    buyer.consignee_tel
+  const isFormValid =
+    !!selectedCompanyId &&
+    !!selectedPortInfoId &&
+    !!selectedCountry &&
+    !!computedDestination &&
+    !!computedDestinationCountry &&
+    !!selectedTemplateUrl &&
+    !!hasBuyerInfo
+
+  useEffect(() => {
+    if (!isFakeMode) {
+      setGeneratingConsignee(false)
+    }
+  }, [isFakeMode])
 
   const countries = ["Russia", "Uzbekistan", "Kazakhstan", "Kyrgyzstan"]
 
@@ -125,6 +213,9 @@ export default function NewInvoicePage() {
 
 
   const handleGenerateConsignee = async () => {
+    if (!isFakeMode) {
+      return
+    }
     if (!selectedCountry) {
       setError("Please select a country first")
       return
@@ -159,8 +250,18 @@ export default function NewInvoicePage() {
       return
     }
 
-    if (!buyer.consignee_name || !buyer.consignee_address || !buyer.consignee_iin || !buyer.consignee_tel) {
-      setError("Please generate consignee data first")
+    if (!computedDestinationCountry) {
+      setError("Destination country is required")
+      return
+    }
+
+    if (!selectedTemplateUrl) {
+      setError("Please select an invoice template")
+      return
+    }
+
+    if (!hasBuyerInfo) {
+      setError("Buyer information is required")
       return
     }
 
@@ -172,7 +273,11 @@ export default function NewInvoicePage() {
         companyId: selectedCompanyId,
         portInfoId: selectedPortInfoId,
         country: selectedCountry,
+        destination: computedDestination,
+        destinationCountry: computedDestinationCountry,
+        invoiceTemplateUrl: selectedTemplateUrl,
         carRecordId: selectedCarRecordId || undefined,
+        mode,
         buyer,
       })
       await qc.invalidateQueries({ queryKey: ["invoices"] })
@@ -185,21 +290,40 @@ export default function NewInvoicePage() {
     }
   }
 
-  const isFormValid = selectedCompanyId && selectedPortInfoId && selectedCountry && 
-    buyer.consignee_name && buyer.consignee_address && buyer.consignee_iin && buyer.consignee_tel
-
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>New Invoice</CardTitle>
-          <CardDescription>Create a new invoice</CardDescription>
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="space-y-1">
+            <CardTitle>New Invoice</CardTitle>
+            <CardDescription>Create a new invoice</CardDescription>
+          </div>
+          <div className="inline-flex rounded-md border p-1 bg-muted/40">
+            <Button
+              type="button"
+              variant={isFakeMode ? "default" : "ghost"}
+              className={isFakeMode ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-sm" : ""}
+              onClick={() => setMode("fake")}
+            >
+              Fake
+            </Button>
+            <Button
+              type="button"
+              variant={!isFakeMode ? "default" : "ghost"}
+              className={!isFakeMode ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-sm" : ""}
+              onClick={() => setMode("original")}
+            >
+              Original
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
-          <Button 
-            className="bg-gradient-to-r from-amber-500 to-orange-600 text-white" 
-            onClick={handleGenerateInvoice} 
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => router.back()}>
+            Cancel
+          </Button>
+          <Button
+            className="bg-gradient-to-r from-amber-500 to-orange-600 text-white"
+            onClick={handleGenerateInvoice}
             disabled={saving || !isFormValid}
           >
             {saving ? (
@@ -208,7 +332,7 @@ export default function NewInvoicePage() {
                 Generating...
               </>
             ) : (
-              'Generate Invoice'
+              "Generate Invoice"
             )}
           </Button>
         </div>
@@ -219,6 +343,32 @@ export default function NewInvoicePage() {
             {error}
           </div>
         )}
+
+        {/* Template selection */}
+        <div className="space-y-2">
+          <Label>Invoice Template</Label>
+          <Select
+            value={selectedTemplateId}
+            onValueChange={setSelectedTemplateId}
+            disabled={invoiceTemplates.length === 0 || loadingTemplates}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={loadingTemplates ? "Loading templates..." : "Select a template"} />
+            </SelectTrigger>
+            <SelectContent>
+              {invoiceTemplates.map((template: any) => (
+                <SelectItem key={template.id} value={template.id}>
+                  {template.fileName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {invoiceTemplates.length === 0 && !loadingTemplates && (
+            <p className="text-xs text-muted-foreground">
+              No templates available. Upload one in Invoice Templates before generating invoices.
+            </p>
+          )}
+        </div>
 
         {/* Info message */}
         <div className="p-3 text-sm text-muted-foreground bg-muted rounded-md">
@@ -405,81 +555,115 @@ export default function NewInvoicePage() {
         {/* Section 4: Buyer Info */}
         <div className="space-y-4 border-t pt-6">
           <h3 className="text-lg font-semibold">Buyer Info</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
-              <div className="flex gap-2">
-                <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                  <SelectTrigger id="country" className="flex-1">
-                    <SelectValue placeholder="Select a country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {countries.map((country) => (
-                      <SelectItem key={country} value={country}>
-                        {country}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleGenerateConsignee}
-                  disabled={!selectedCountry || generatingConsignee}
-                >
-                  {generatingConsignee ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    'Generate'
-                  )}
-                </Button>
+
+          {isFakeMode ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="country">Country</Label>
+                <div className="flex gap-2">
+                  <Select
+                    value={selectedCountry}
+                    onValueChange={(value) => {
+                      setSelectedCountry(value)
+                      setBuyer((prev) => ({ ...prev, country: value }))
+                    }}
+                  >
+                    <SelectTrigger id="country" className="flex-1">
+                      <SelectValue placeholder="Select a country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleGenerateConsignee}
+                    disabled={!selectedCountry || generatingConsignee}
+                  >
+                    {generatingConsignee ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      "Generate"
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="countryInput">Country</Label>
+                <Input
+                  id="countryInput"
+                  value={selectedCountry}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setSelectedCountry(value)
+                    setBuyer((prev) => ({ ...prev, country: value }))
+                  }}
+                  placeholder="Enter country"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="destinationInput">Destination</Label>
+                <Input
+                  id="destinationInput"
+                  value={destinationInput}
+                  onChange={(e) => setDestinationInput(e.target.value)}
+                  placeholder="Enter destination country"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Buyer Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div className="space-y-2">
               <Label htmlFor="consignee_name">Consignee Name</Label>
-              <Input 
+              <Input
                 id="consignee_name"
-                value={buyer.consignee_name} 
-                onChange={(e) => setBuyer({ ...buyer, consignee_name: e.target.value })} 
+                value={buyer.consignee_name}
+                onChange={(e) => setBuyer({ ...buyer, consignee_name: e.target.value })}
                 placeholder="Consignee name"
-                readOnly
+                readOnly={isFakeMode}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="consignee_address">Consignee Address</Label>
-              <Input 
+              <Input
                 id="consignee_address"
-                value={buyer.consignee_address} 
-                onChange={(e) => setBuyer({ ...buyer, consignee_address: e.target.value })} 
+                value={buyer.consignee_address}
+                onChange={(e) => setBuyer({ ...buyer, consignee_address: e.target.value })}
                 placeholder="Consignee address"
-                readOnly
+                readOnly={isFakeMode}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="consignee_iin">Consignee IIN</Label>
-              <Input 
+              <Input
                 id="consignee_iin"
-                value={buyer.consignee_iin} 
-                onChange={(e) => setBuyer({ ...buyer, consignee_iin: e.target.value })} 
+                value={buyer.consignee_iin}
+                onChange={(e) => setBuyer({ ...buyer, consignee_iin: e.target.value })}
                 placeholder="Consignee IIN"
-                readOnly
+                readOnly={isFakeMode}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="consignee_tel">Consignee Telephone</Label>
-              <Input 
+              <Input
                 id="consignee_tel"
-                value={buyer.consignee_tel} 
-                onChange={(e) => setBuyer({ ...buyer, consignee_tel: e.target.value })} 
+                value={buyer.consignee_tel}
+                onChange={(e) => setBuyer({ ...buyer, consignee_tel: e.target.value })}
                 placeholder="Consignee telephone"
-                readOnly
+                readOnly={isFakeMode}
               />
             </div>
           </div>
