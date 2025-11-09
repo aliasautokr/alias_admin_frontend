@@ -42,8 +42,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.accessToken = token.accessToken as string | undefined
       session.refreshToken = token.refreshToken as string | undefined
       session.user.id = (token.sub as string | undefined) ?? session.user.id
-      session.user.name = token.name as string | null
-      session.user.email = token.email as string | null
+      session.user.name = (token.name as string | undefined) ?? null
+      session.user.email = (token.email as string | undefined) ?? null
       session.user.image = (token.picture as string | null) ?? null
 
       if (token.backendUser) {
