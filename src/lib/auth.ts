@@ -42,9 +42,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.accessToken = token.accessToken as string | undefined
       session.refreshToken = token.refreshToken as string | undefined
       session.user.id = (token.sub as string | undefined) ?? session.user.id
-      session.user.name = (token.name as string | undefined) ?? null
-      session.user.email = (token.email as string | undefined) ?? null
-      session.user.image = (token.picture as string | null) ?? null
+      if (typeof token.name === "string") {
+        session.user.name = token.name
+      } else if (session.user.name === undefined) {
+        session.user.name = null
+      }
+
+      if (typeof token.email === "string") {
+        session.user.email = token.email
+      }
+
+      if (typeof token.picture === "string") {
+        session.user.image = token.picture
+      } else if (session.user.image === undefined) {
+        session.user.image = null
+      }
 
       if (token.backendUser) {
         session.user.role = (token.backendUser as any).role
