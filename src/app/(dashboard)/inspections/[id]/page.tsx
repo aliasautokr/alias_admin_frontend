@@ -28,6 +28,7 @@ export default function EditInspectionPage({ params }: EditInspectionPageProps) 
   const [existingImages, setExistingImages] = useState<string[]>([])
   const [newFiles, setNewFiles] = useState<File[]>([])
   const [description, setDescription] = useState<any>(null)
+  const [inspectorName, setInspectorName] = useState("")
 
   const { data: inspection, isLoading, error } = useQuery({
     queryKey: ["inspection", resolvedParams.id],
@@ -39,6 +40,7 @@ export default function EditInspectionPage({ params }: EditInspectionPageProps) 
     if (inspection) {
       setTitle(inspection.title)
       setCustomerName(inspection.customerName || "")
+      setInspectorName(inspection.inspectorName || "")
       setExistingImages(inspection.images || [])
       setDescription(inspection.description)
     }
@@ -80,6 +82,7 @@ export default function EditInspectionPage({ params }: EditInspectionPageProps) 
         images: allImages,
         description,
         customerName: customerName || undefined,
+        inspectorName: inspectorName || undefined,
       })
     },
     onSuccess: () => {
@@ -161,6 +164,16 @@ export default function EditInspectionPage({ params }: EditInspectionPageProps) 
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="Enter customer name (optional)"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="inspectorName">Inspector Name</Label>
+            <Input
+              id="inspectorName"
+              value={inspectorName}
+              onChange={(e) => setInspectorName(e.target.value)}
+              placeholder="Enter inspector name"
             />
           </div>
 

@@ -199,12 +199,12 @@ class ApiClient {
     return response.data.data
   }
 
-  async createInspection(data: { title: string; images: string[]; description: any; customerName?: string }) {
+  async createInspection(data: { title: string; images: string[]; description: any; customerName?: string; inspectorName?: string }) {
     const response = await this.client.post('/inspections', data)
     return response.data.data
   }
 
-  async updateInspection(id: string, data: { title?: string; images?: string[]; description?: any; customerName?: string }) {
+  async updateInspection(id: string, data: { title?: string; images?: string[]; description?: any; customerName?: string; inspectorName?: string }) {
     const response = await this.client.patch(`/inspections/${id}`, data)
     return response.data.data
   }

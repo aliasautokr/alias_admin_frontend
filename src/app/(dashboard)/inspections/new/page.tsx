@@ -19,6 +19,7 @@ export default function NewInspectionPage() {
   
   const [title, setTitle] = useState("")
   const [customerName, setCustomerName] = useState("")
+  const [inspectorName, setInspectorName] = useState(session?.user?.name ?? "")
   const [images, setImages] = useState<File[]>([])
   const [description, setDescription] = useState<any>(null)
 
@@ -55,6 +56,7 @@ export default function NewInspectionPage() {
         images: imageUrls,
         description,
         customerName: customerName || undefined,
+        inspectorName: inspectorName || undefined,
       })
     },
     onSuccess: () => {
@@ -100,6 +102,16 @@ export default function NewInspectionPage() {
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="Enter customer name (optional)"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="inspectorName">Inspector Name</Label>
+            <Input
+              id="inspectorName"
+              value={inspectorName}
+              onChange={(e) => setInspectorName(e.target.value)}
+              placeholder="Enter inspector name"
             />
           </div>
 
