@@ -540,15 +540,15 @@ export default function EditCollectionPage() {
                       alt="Collection" 
                       className="h-32 w-full object-cover rounded-md border" 
                     />
-                    <button
+                    <Button
                       type="button"
                       variant="destructive"
                       size="sm"
-                      className="absolute top-1 right-1 text-xs bg-black/60 text-white rounded px-2 py-0.5 opacity-0 group-hover:opacity-100"
+                      className="absolute top-1 right-1 text-xs bg-black/60 text-white rounded px-2 py-0.5 opacity-0 group-hover:opacity-100 hover:bg-black/80"
                       onClick={() => handleRemoveExistingImage(image)}
                     >
                       Remove
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
