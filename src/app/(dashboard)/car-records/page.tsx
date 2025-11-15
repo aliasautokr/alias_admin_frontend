@@ -1,10 +1,12 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Pagination } from "@/components/ui/pagination"
 import { apiClient } from "@/lib/api-client"
 import { useSession } from "next-auth/react"
 
@@ -23,22 +25,29 @@ function formatNumber(value: string | null | undefined): string {
 export default function CarRecordsPage() {
   const { status } = useSession()
   const queryClient = useQueryClient()
+  const [currentPage, setCurrentPage] = useState(1)
+  
   const { data, isLoading, error } = useQuery({ 
-    queryKey: ["car-records"], 
-    queryFn: () => apiClient.listCarRecords(),
-    select: (data) => data.items || [],
+    queryKey: ["car-records", currentPage], 
+    queryFn: () => apiClient.listCarRecords({ page: currentPage, limit: 20 }),
     enabled: status === "authenticated",
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
     retry: 1
   })
-  const items = Array.isArray(data) ? data : []
+  
+  const items = Array.isArray(data?.items) ? data.items : []
+  const pagination = data?.pagination || { page: 1, totalPages: 1, total: 0 }
   
   const del = useMutation({
     mutationFn: (id: string) => apiClient.deleteCarRecord(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["car-records"] }),
   })
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
 
   return (
     <Card>
@@ -102,7 +111,7 @@ export default function CarRecordsPage() {
                       <td className="py-2">{formatNumber(item.engine_cc)}</td>
                       <td className="py-2">{item.manufacture_date?.substring(0, 4) || item.manufacture_date}</td>
                       <td className="py-2">{formatNumber(item.price)}</td>
-                      <td className="py-2">{item.author?.name || 'N/A'}</td>
+                      <td className="py-2">{(item as any).User?.name || (item as any).User?.email || 'N/A'}</td>
                       <td className="py-2">
                         <div className="flex gap-3">
                           <Link href={`/car-records/${item.id}`} className="text-amber-500 hover:underline">Edit</Link>
@@ -120,6 +129,13 @@ export default function CarRecordsPage() {
                 )}
               </tbody>
             </table>
+            {!isLoading && !error && pagination.totalPages > 1 && (
+              <Pagination
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={handlePageChange}
+              />
+            )}
           </div>
         )}
       </CardContent>

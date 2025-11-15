@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,10 +30,16 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 mb-4">
-            <span className="text-white font-bold text-2xl">A</span>
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/logo_dark.png"
+              alt="Logo"
+              width={160}
+              height={42}
+              className="h-10 w-auto"
+              priority
+            />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Aliasauto Admin</h1>
           <p className="text-gray-400">Sign in to access your dashboard</p>
         </div>
 
@@ -93,7 +100,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-gray-500 text-sm">
-            © 2024 Aliasauto. All rights reserved.
+            © 2025 Aliasauto. All rights reserved.
           </p>
         </div>
       </div>

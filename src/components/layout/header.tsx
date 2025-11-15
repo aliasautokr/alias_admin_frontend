@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import { apiClient } from "@/lib/api-client"
@@ -61,13 +62,23 @@ export function Header({ onMenuClick }: HeaderProps) {
         </Button>
         
         {/* Logo */}
-        <div className="flex items-center space-x-2 mr-6">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">A</span>
-          </div>
-          <span className="hidden font-bold text-lg sm:inline-block">
-            Aliasauto Admin
-          </span>
+        <div className="flex items-center mr-6 relative">
+          <Image
+            src="/logo_light.png"
+            alt="Logo"
+            width={120}
+            height={32}
+            className="h-8 w-auto dark:hidden"
+            priority
+          />
+          <Image
+            src="/logo_dark.png"
+            alt="Logo"
+            width={120}
+            height={32}
+            className="h-8 w-auto hidden dark:block"
+            priority
+          />
         </div>
 
         {/* Breadcrumb */}

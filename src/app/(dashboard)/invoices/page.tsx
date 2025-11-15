@@ -1,10 +1,12 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Pagination } from "@/components/ui/pagination"
 import { apiClient } from "@/lib/api-client"
 import { useSession } from "next-auth/react"
 import { Download } from "lucide-react"
@@ -12,22 +14,29 @@ import { Download } from "lucide-react"
 export default function InvoicesPage() {
   const { status } = useSession()
   const queryClient = useQueryClient()
+  const [currentPage, setCurrentPage] = useState(1)
+  
   const { data, isLoading, error } = useQuery({ 
-    queryKey: ["invoices"], 
-    queryFn: () => apiClient.listInvoices(),
-    select: (data) => data.items || [],
+    queryKey: ["invoices", currentPage], 
+    queryFn: () => apiClient.listInvoices({ page: currentPage, limit: 20 }),
     enabled: status === "authenticated",
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
     retry: 1
   })
-  const items = Array.isArray(data) ? data : []
+  
+  const items = Array.isArray(data?.items) ? data.items : []
+  const pagination = data?.pagination || { page: 1, totalPages: 1, total: 0 }
   
   const del = useMutation({
     mutationFn: (id: string) => apiClient.deleteInvoice(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["invoices"] }),
   })
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
 
   const handleDownload = async (fileUrl: string, invoiceNumber: string, vin?: string, carModel?: string) => {
     try {
@@ -174,6 +183,13 @@ export default function InvoicesPage() {
                 )}
               </tbody>
             </table>
+            {!isLoading && !error && pagination.totalPages > 1 && (
+              <Pagination
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={handlePageChange}
+              />
+            )}
           </div>
         )}
       </CardContent>

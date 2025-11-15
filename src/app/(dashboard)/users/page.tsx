@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Pagination } from "@/components/ui/pagination"
 import { apiClient } from "@/lib/api-client"
 import { useSession } from "next-auth/react"
 import { useMemo, useState } from "react"
@@ -12,10 +13,11 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 export default function UsersPage() {
   const { data: session, status } = useSession()
   const queryClient = useQueryClient()
+  const [currentPage, setCurrentPage] = useState(1)
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["users"],
-    queryFn: () => apiClient.listUsers(),
+    queryKey: ["users", currentPage],
+    queryFn: () => apiClient.listUsers({ page: currentPage, limit: 20 }),
     enabled: status === "authenticated",
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -36,8 +38,13 @@ export default function UsersPage() {
   })
 
   // Normalize users BEFORE any early returns; not a hook
-  const users = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+  const users = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : [])
+  const pagination = data?.pagination || { page: 1, totalPages: 1, total: 0 }
   const [pendingDelete, setPendingDelete] = useState<null | { id: string; email: string }>(null)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
 
   // Loading state while session resolves
   if (status === "loading") {
@@ -138,6 +145,13 @@ export default function UsersPage() {
                 ))}
               </tbody>
             </table>
+            {!isLoading && !error && pagination.totalPages > 1 && (
+              <Pagination
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={handlePageChange}
+              />
+            )}
           </div>
         )}
       </CardContent>

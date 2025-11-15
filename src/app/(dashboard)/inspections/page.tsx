@@ -66,20 +66,38 @@ export default function InspectionsPage() {
                   <th className="py-2">Images</th>
                   <th className="py-2">Customer</th>
                   <th className="py-2">Author</th>
+                  <th className="py-2">Link</th>
                   <th className="py-2">Updated</th>
                   <th className="py-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((i) => (
-                  <tr key={i.id} className="border-b border-border/50">
-                    <td className="py-2">{i.title}</td>
-                    <td className="py-2">{i.images.length}</td>
-                    <td className="py-2">{i.customerName || '—'}</td>
-                    <td className="py-2">
-                      {i.author?.name || i.author?.email || '—'}
-                    </td>
-                    <td className="py-2">{new Date(i.updatedAt).toLocaleString()}</td>
+                {items.map((i) => {
+                  const inspectionId = (i as any).inspectionId || ''
+                  const link = inspectionId ? `aliasauto.kr/inspection/${inspectionId}` : '—'
+                  return (
+                    <tr key={i.id} className="border-b border-border/50">
+                      <td className="py-2">{i.title}</td>
+                      <td className="py-2">{i.images.length}</td>
+                      <td className="py-2">{i.customerName || '—'}</td>
+                      <td className="py-2">
+                        {(i as any).User?.name || (i as any).User?.email || '—'}
+                      </td>
+                      <td className="py-2">
+                        {link !== '—' ? (
+                          <a 
+                            href={`https://${link}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline"
+                          >
+                            {link}
+                          </a>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="py-2">{new Date(i.updatedAt).toLocaleString()}</td>
                     <td className="py-2">
                       <div className="flex gap-3">
                         <Link href={`/inspections/${i.id}`} className="text-amber-500 hover:underline">Edit</Link>
@@ -93,7 +111,8 @@ export default function InspectionsPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

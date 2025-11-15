@@ -13,7 +13,7 @@ const routePermissions: Record<string, Role[]> = {
   '/users': [ROLES.SUPER_ADMIN],
   '/collections': [ROLES.SUPER_ADMIN, ROLES.SALES, ROLES.MARKETING], // Updated to include MARKETING
   '/invoices': [ROLES.SUPER_ADMIN, ROLES.SALES],
-  '/invoice-templates': [ROLES.SUPER_ADMIN],
+  '/invoice-templates': [ROLES.SUPER_ADMIN, ROLES.SALES],
   '/inspections': [ROLES.SUPER_ADMIN, ROLES.SALES],
   '/car-records': [ROLES.SUPER_ADMIN, ROLES.SALES],
   '/companies': [ROLES.SUPER_ADMIN, ROLES.SALES],
