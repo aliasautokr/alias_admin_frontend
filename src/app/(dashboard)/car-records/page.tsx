@@ -102,7 +102,7 @@ export default function CarRecordsPage() {
                     </td>
                   </tr>
                 ) : (
-                  items.map((item) => (
+                  items.map((item: any) => (
                     <tr key={item.id} className="border-b border-border/50">
                       <td className="py-2">{item.car_model}</td>
                       <td className="py-2">{item.vin}</td>
