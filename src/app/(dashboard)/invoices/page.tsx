@@ -136,7 +136,7 @@ export default function InvoicesPage() {
                         <td className="py-2">{vin}</td>
                         <td className="py-2">{carModel}</td>
                         <td className="py-2">
-                          {item.author?.name || item.author?.email || '—'}
+                          {(item as any).User?.name || (item as any).User?.email || '—'}
                         </td>
                         <td className="py-2">{item.country}</td>
                         <td className="py-2">

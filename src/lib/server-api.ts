@@ -16,6 +16,11 @@ export const serverApiClient = {
     const response = await serverAxios.post('/auth/google', { idToken })
     return response.data.data
   },
+
+  async refresh(refreshToken: string) {
+    const response = await serverAxios.post('/auth/refresh', { refreshToken })
+    return response.data.data
+  },
 }
 
 

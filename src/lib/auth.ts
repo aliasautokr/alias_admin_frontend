@@ -2,6 +2,38 @@ import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 import { serverApiClient } from "./server-api"
 
+interface BackendAuthResponse {
+  accessToken: string
+  refreshToken: string
+  expiresIn?: number
+  user: Record<string, unknown>
+}
+
+async function refreshBackendToken(token: any) {
+  if (!token?.refreshToken) {
+    console.error("Refresh token missing, cannot refresh access token")
+    token.error = "RefreshAccessTokenError"
+    return token
+  }
+
+  try {
+    const response: BackendAuthResponse = await serverApiClient.refresh(token.refreshToken as string)
+    token.accessToken = response.accessToken
+    token.refreshToken = response.refreshToken ?? token.refreshToken
+    token.accessExpiresAt = Date.now() + (response.expiresIn ?? 0) * 1000
+    // Update backendUser with fresh data from refresh response
+    if (response.user) {
+      token.backendUser = response.user
+    }
+    delete token.error
+  } catch (error) {
+    console.error("Failed to refresh backend token:", error)
+    token.error = "RefreshAccessTokenError"
+  }
+
+  return token
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Google({
@@ -28,15 +60,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         } catch (error) {
           console.error("Failed to exchange Google token with backend:", error)
         }
+        return token
       }
 
-      if (profile) {
-        token.name = profile.name
-        token.email = profile.email
-        token.picture = profile.picture
+      if (token.accessExpiresAt && Date.now() < (token.accessExpiresAt as number)) {
+        return token
       }
 
-      return token
+      return refreshBackendToken(token)
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken as string | undefined
@@ -59,9 +90,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       if (token.backendUser) {
-        session.user.role = (token.backendUser as any).role
-        session.user.isActive = (token.backendUser as any).isActive
-        session.user.backendId = (token.backendUser as any).id
+        const backendUser = token.backendUser as any
+        session.user.role = typeof backendUser.role === 'string' ? backendUser.role : undefined
+        session.user.isActive = backendUser.isActive
+        session.user.backendId = backendUser.id
       }
 
       if (typeof window !== "undefined" && token.accessToken && token.refreshToken) {
@@ -70,6 +102,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           accessToken: token.accessToken as string,
           refreshToken: token.refreshToken as string,
         })
+      }
+
+      if (token.error) {
+        (session as any).error = token.error
       }
 
       return session

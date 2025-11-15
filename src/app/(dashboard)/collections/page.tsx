@@ -62,7 +62,8 @@ export default function CollectionsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground border-b">
-                  <th className="py-2">Title</th>
+                  <th className="py-2">Listing ID</th>
+                  <th className="py-2">Car</th>
                   <th className="py-2">Images</th>
                   <th className="py-2">Author</th>
                   <th className="py-2">Updated</th>
@@ -70,28 +71,51 @@ export default function CollectionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((c) => (
-                  <tr key={c.id} className="border-b border-border/50">
-                    <td className="py-2">{c.title}</td>
-                    <td className="py-2">{c.images.length}</td>
-                    <td className="py-2">
-                      {c.author?.name || c.author?.email || '—'}
-                    </td>
-                    <td className="py-2">{new Date(c.updatedAt).toLocaleString()}</td>
-                    <td className="py-2">
-                      <div className="flex gap-3">
-                        <Link href={`/collections/${c.id}`} className="text-amber-500 hover:underline">Edit</Link>
-                        <button
-                          className="text-red-500 hover:underline"
-                          onClick={() => del.mutate(c.id)}
-                          disabled={del.isPending}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {items.map((c) => {
+                  const text = c.data?.text ?? c.data ?? {}
+                  const make =
+                    text?.make?.ru ??
+                    (typeof text?.make === "string" ? text.make : undefined) ??
+                    "—"
+                  const model =
+                    text?.model?.ru ??
+                    (typeof text?.model === "string" ? text.model : undefined) ??
+                    ""
+                  const carLabel = [make, model].filter(Boolean).join(" ").trim() || "—"
+                  const images = Array.isArray(c.data?.images) ? c.data.images : []
+                  const imageCount = images.length
+                  return (
+                    <tr key={c.id} className="border-b border-border/50">
+                      <td className="py-2 font-mono text-sm">{c.listingId}</td>
+                      <td className="py-2 font-medium">{carLabel}</td>
+                      <td className="py-2">{imageCount}</td>
+                      <td className="py-2">
+                        {c.User?.name || c.User?.email || "—"}
+                      </td>
+                      <td className="py-2">{new Date(c.updatedAt).toLocaleString()}</td>
+                      <td className="py-2">
+                        <div className="flex gap-3">
+                          <Link href={`/collections/${c.id}`} className="text-amber-500 hover:underline">
+                            Edit
+                          </Link>
+                          <button
+                            className="text-red-500 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() => {
+                              if (window.confirm(
+                                `Are you sure you want to delete this collection (${c.listingId})? This action cannot be undone and will also delete all associated images from S3.`
+                              )) {
+                                del.mutate(c.id)
+                              }
+                            }}
+                            disabled={del.isPending}
+                          >
+                            {del.isPending ? "Deleting…" : "Delete"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

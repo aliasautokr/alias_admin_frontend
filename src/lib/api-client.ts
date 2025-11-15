@@ -6,6 +6,22 @@ import axios, {
 } from 'axios'
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './token-utils'
 
+let forcedLogout = false
+
+async function triggerSignOutRedirect() {
+  if (typeof window === 'undefined') return
+  if (forcedLogout) return
+  forcedLogout = true
+
+  try {
+    const { signOut } = await import('next-auth/react')
+    await signOut({ callbackUrl: '/login', redirect: true })
+  } catch (error) {
+    console.error('Failed to trigger sign out:', error)
+    window.location.href = '/login'
+  }
+}
+
 class ApiClient {
   private client: AxiosInstance
   private refreshPromise: Promise<string> | null = null
@@ -52,6 +68,7 @@ class ApiClient {
           return this.client(originalRequest)
         } catch (refreshError) {
           clearTokens()
+          void triggerSignOutRedirect()
           return Promise.reject(refreshError)
         }
       }
@@ -153,6 +170,20 @@ class ApiClient {
     return response.data.data
   }
 
+  async uploadImage(file: File): Promise<{ imageUrl: string; originalSize: number; optimizedSize: number; compressionRatio: string }> {
+    const formData = new FormData()
+    formData.append('image', file)
+    
+    // For FormData, delete Content-Type header so axios can set it automatically with boundary
+    const response = await this.client.post('/collections/upload-image', formData, {
+      headers: {
+        'Content-Type': undefined, // Remove default Content-Type so axios sets multipart/form-data with boundary
+      },
+    })
+    
+    return response.data.data
+  }
+
   async listCollections(params?: { page?: number; limit?: number; authorId?: string }) {
     const response = await this.client.get('/collections', { params })
     return response.data.data
@@ -163,19 +194,23 @@ class ApiClient {
     return response.data.data
   }
 
-  async createCollection(data: { title: string; images: string[]; description: any }) {
+  async createCollection(data: { listingId: string; data: any }) {
     const response = await this.client.post('/collections', data)
     return response.data.data
   }
 
-  async updateCollection(id: string, data: { title?: string; images?: string[]; description?: any }) {
+  async updateCollection(id: string, data: { listingId?: string; data?: any }) {
     const response = await this.client.patch(`/collections/${id}`, data)
     return response.data.data
   }
 
   async deleteCollection(id: string) {
     const response = await this.client.delete(`/collections/${id}`)
-    return response.data.data
+    // 204 No Content responses don't have a body
+    if (response.status === 204 || !response.data) {
+      return { success: true }
+    }
+    return response.data.data || response.data
   }
 
   async deleteImage(imageUrl: string) {
@@ -189,6 +224,20 @@ class ApiClient {
     return response.data.data
   }
 
+  async uploadInspectionImage(file: File): Promise<{ imageUrl: string; originalSize: number; optimizedSize: number; compressionRatio: string }> {
+    const formData = new FormData()
+    formData.append('image', file)
+    
+    // For FormData, delete Content-Type header so axios can set it automatically with boundary
+    const response = await this.client.post('/inspections/upload-image', formData, {
+      headers: {
+        'Content-Type': undefined, // Remove default Content-Type so axios sets multipart/form-data with boundary
+      },
+    })
+    
+    return response.data.data
+  }
+
   async listInspections(params?: { page?: number; limit?: number; authorId?: string }) {
     const response = await this.client.get('/inspections', { params })
     return response.data.data
@@ -199,12 +248,12 @@ class ApiClient {
     return response.data.data
   }
 
-  async createInspection(data: { title: string; images: string[]; description: any; customerName?: string; inspectorName?: string }) {
+  async createInspection(data: { title: string; images: string[]; description: any; customerName?: string; inspectorName?: string; inspectionId?: string; link?: string }) {
     const response = await this.client.post('/inspections', data)
     return response.data.data
   }
 
-  async updateInspection(id: string, data: { title?: string; images?: string[]; description?: any; customerName?: string; inspectorName?: string }) {
+  async updateInspection(id: string, data: { title?: string; images?: string[]; description?: any; customerName?: string; inspectorName?: string; inspectionId?: string; link?: string }) {
     const response = await this.client.patch(`/inspections/${id}`, data)
     return response.data.data
   }
@@ -269,6 +318,21 @@ class ApiClient {
       {
         headers: {
           'Content-Type': 'multipart/form-data',
+        },
+      }
+    )
+    return response.data
+  }
+
+  // Extract car data from text (via Next.js API proxy)
+  async extractCarDataFromText(text: string) {
+    // Use Next.js API route to avoid CORS issues
+    const response = await axios.post(
+      '/api/extract-text',
+      { text },
+      {
+        headers: {
+          'Content-Type': 'application/json',
         },
       }
     )

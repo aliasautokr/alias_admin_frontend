@@ -12,6 +12,11 @@ const api = axios.create({
 
 api.interceptors.request.use(
   async (config) => {
+    // Don't set Content-Type for FormData - let axios handle it automatically
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+    }
+
     const accessToken = getAccessToken()
 
     if (accessToken) {
