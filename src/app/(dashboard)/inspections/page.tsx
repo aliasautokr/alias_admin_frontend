@@ -72,7 +72,7 @@ export default function InspectionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((i) => {
+                {items.map((i: any) => {
                   const inspectionId = (i as any).inspectionId || ''
                   const link = inspectionId ? `aliasauto.kr/inspection/${inspectionId}` : '—'
                   return (

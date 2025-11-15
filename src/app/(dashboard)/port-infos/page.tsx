@@ -75,7 +75,7 @@ export default function PortInfosPage() {
                     </td>
                   </tr>
                 ) : (
-                  items.map((item) => (
+                  items.map((item: any) => (
                     <tr key={item.id} className="border-b border-border/50">
                       <td className="py-2">{item.shortAddress}</td>
                       <td className="py-2">

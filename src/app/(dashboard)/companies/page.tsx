@@ -78,7 +78,7 @@ export default function CompaniesPage() {
                     </td>
                   </tr>
                 ) : (
-                  items.map((item) => (
+                  items.map((item: any) => (
                     <tr key={item.id} className="border-b border-border/50">
                       <td className="py-2">{item.name}</td>
                       <td className="py-2">{item.address}</td>

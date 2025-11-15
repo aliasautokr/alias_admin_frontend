@@ -129,7 +129,7 @@ export default function InvoicesPage() {
                     </td>
                   </tr>
                 ) : (
-                  items.map((item) => {
+                  items.map((item: any) => {
                     // Use direct carVin field or fallback to carRecord relation
                     const vin = (item as any).carVin || 
                                (item as any).carRecord?.vin || 

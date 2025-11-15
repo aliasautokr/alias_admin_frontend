@@ -71,7 +71,7 @@ export default function CollectionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((c) => {
+                {items.map((c: any) => {
                   const text = c.data?.text ?? c.data ?? {}
                   const make =
                     text?.make?.ru ??
